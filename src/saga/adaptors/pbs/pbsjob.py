@@ -612,7 +612,7 @@ class PBSJobService (saga.adaptors.cpi.job.Service):
 
         # TODO: this is quite a hack. however, it *seems* to work quite
         #       well in practice.
-        if 'PBSPro_12' in self._commands['qstat']['version']:
+        if ('PBSPro_12' in self._commands['qstat']['version']) or ('PBSPro_11.3' in self._commands['qstat']['version']):
             ret, out, _ = self.shell.run_sync('unset GREP_OPTIONS; %s -a | grep -E "resources_available.ncpus"' % \
                                                self._commands['pbsnodes']['path'])
         else:
@@ -816,7 +816,8 @@ class PBSJobService (saga.adaptors.cpi.job.Service):
         # run the PBS 'qstat' command to get some infos about our job
         # TODO: create a PBSPRO/TORQUE flag once
         if 'PBSPro_1' in self._commands['qstat']['version']:
-            qstat_flag = '-fx'
+            # jcohen02: Changed from -fx to support my target platform. 
+            qstat_flag = '-f'
         else:
             qstat_flag ='-f1'
             
