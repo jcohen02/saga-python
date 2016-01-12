@@ -148,6 +148,8 @@ def _pbscript_generator(url, logger, jd, ppn, gres, pbs_version, is_cray=False, 
     """
     pbs_params  = str()
     exec_n_args = str()
+    pre_exec_cmds = str()
+    post_exec_cmds = str()
 
     exec_n_args += 'export SAGA_PPN=%d\n' % ppn
     if jd.executable:
@@ -155,6 +157,14 @@ def _pbscript_generator(url, logger, jd, ppn, gres, pbs_version, is_cray=False, 
     if jd.arguments:
         for arg in jd.arguments:
             exec_n_args += "%s " % (arg)
+
+    # Prepare pre and post executable commands if they're provided
+    if jd.pre_exec_cmds:
+        for pre_cmd in jd.pre_exec_cmds:
+            pre_exec_cmds += (pre_cmd + '\n')
+    if jd.post_exec_cmds:
+        for post_cmd in jd.post_exec_cmds:
+            post_exec_cmds += (post_cmd + '\n')
 
     if jd.name:
         pbs_params += "#PBS -N %s \n" % jd.name
@@ -320,7 +330,8 @@ def _pbscript_generator(url, logger, jd, ppn, gres, pbs_version, is_cray=False, 
     exec_n_args = workdir_directives + exec_n_args
     exec_n_args = exec_n_args.replace('$', '\\$')
 
-    pbscript = "\n#!/bin/bash \n%s%s" % (pbs_params, exec_n_args)
+    pbscript = ("\n#!/bin/bash \n%s%s%s%s"
+                % (pbs_params, pre_exec_cmds, exec_n_args, post_exec_cmds))
 
     pbscript = pbscript.replace('"', '\\"')
     return pbscript
@@ -357,7 +368,9 @@ _ADAPTOR_CAPABILITIES = {
                           saga.job.WALL_TIME_LIMIT,
                           saga.job.SPMD_VARIATION, # TODO: 'hot'-fix for BigJob
                           saga.job.PROCESSES_PER_HOST,
-                          saga.job.TOTAL_CPU_COUNT],
+                          saga.job.TOTAL_CPU_COUNT,
+                          saga.job.PRE_EXEC_CMDS,
+                          saga.job.POST_EXEC_CMDS],
     "job_attributes":    [saga.job.EXIT_CODE,
                           saga.job.EXECUTION_HOSTS,
                           saga.job.CREATED,

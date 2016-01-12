@@ -74,6 +74,17 @@ PROCESSES_PER_HOST    = 'ProcessesPerHost';    """ :todo: docstring """
 THREADS_PER_PROCESS   = 'ThreadsPerProcess';   """ :todo: docstring """ 
 JOB_CONTACT           = 'JobContact';          """ :todo: docstring """
 NAME                  = 'Name';                """ The name of your job """ # non-GFD.90
+PRE_EXEC_CMDS         = 'PreExecCmds';         """ List of commands to add to 
+                                                   job submission script to run 
+                                                   on the target resource 
+                                                   before the main job 
+                                                   executable """  # non-GFD.90
+POST_EXEC_CMDS        = 'PostExecCmds';        """ List of commands to add to
+                                                   job submission script to run 
+                                                   on the target resource 
+                                                   after the main job 
+                                                   executable """  # non-GFD.90
+
 
 
 ################################################################################
