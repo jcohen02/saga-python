@@ -305,6 +305,13 @@ def _pbscript_generator(url, logger, jd, ppn, gres, pbs_version, is_cray=False, 
         else:
             logger.info("Using Cray XT (e.g. Kraken, Jaguar) specific '#PBS -l size=xx' flags (TORQUE).")
             pbs_params += "#PBS -l size=%s\n" % jd.total_cpu_count
+    # If we're working with a PBS platform that requires a parameter of the
+    # form #PBS -l select=<node type>:ncpus=<num cpus>:mem=<memory required>
+    # then we add this line in here, instead of any of the other configuration 
+    # options.
+    elif jd.node_cpu_mem:
+        # Add the complete line as provided to the node_cpu_mem propery.
+        pbs_params += jd.node_cpu_mem
     elif 'version: 2.3.13' in pbs_version:
         # e.g. Blacklight
         # TODO: The more we add, the more it screams for a refactoring
@@ -374,6 +381,9 @@ _ADAPTOR_CAPABILITIES = {
                           saga.job.SPMD_VARIATION, # TODO: 'hot'-fix for BigJob
                           saga.job.PROCESSES_PER_HOST,
                           saga.job.TOTAL_CPU_COUNT,
+                          # Added to support job configuration line in PBS 
+                          # script such as #PBS -l select=16:ncpus=1:mem=2048mb
+                          saga.job.NODE_CPU_MEM,
                           saga.job.PRE_EXEC_CMDS,
                           saga.job.POST_EXEC_CMDS],
     "job_attributes":    [saga.job.EXIT_CODE,

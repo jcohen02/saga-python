@@ -74,6 +74,10 @@ PROCESSES_PER_HOST    = 'ProcessesPerHost';    """ :todo: docstring """
 THREADS_PER_PROCESS   = 'ThreadsPerProcess';   """ :todo: docstring """ 
 JOB_CONTACT           = 'JobContact';          """ :todo: docstring """
 NAME                  = 'Name';                """ The name of your job """ # non-GFD.90
+NODE_CPU_MEM          = 'NodeCpuMem';          """ Supports line in PBS scripts
+                                                   that specifies node type, 
+                                                   number of CPUs and memory
+                                                   requirements.""" # non-GFD.90
 PRE_EXEC_CMDS         = 'PreExecCmds';         """ List of commands to add to 
                                                    job submission script to run 
                                                    on the target resource 

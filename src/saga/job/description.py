@@ -60,6 +60,8 @@ class Description (saga.Attributes) :
         # self._attributes_set_enums (saga.job.SPMD_VARIATION,      ['MPI', 'OpenMP', 'MPICH-G'])
         self._attributes_register  (saga.job.PRE_EXEC_CMDS        , None, sa.STRING, sa.VECTOR, sa.WRITEABLE)
         self._attributes_register  (saga.job.POST_EXEC_CMDS       , None, sa.STRING, sa.VECTOR, sa.WRITEABLE)
+        # Temporary addition to support PBS config lines such as #PBS -l select=16:ncpus=1:mem=2048mb
+        self._attributes_register  (saga.job.NODE_CPU_MEM         , None, sa.STRING, sa.SCALAR, sa.WRITEABLE)
 
         self._env_is_list = False
 
