@@ -311,7 +311,7 @@ def _pbscript_generator(url, logger, jd, ppn, gres, pbs_version, is_cray=False, 
     # options.
     elif jd.node_cpu_mem:
         # Add the complete line as provided to the node_cpu_mem propery.
-        pbs_params += jd.node_cpu_mem + '\n'
+        pbs_params += "#PBS -l %s\n" % (jd.node_cpu_mem)
     elif 'version: 2.3.13' in pbs_version:
         # e.g. Blacklight
         # TODO: The more we add, the more it screams for a refactoring
