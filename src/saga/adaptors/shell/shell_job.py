@@ -196,6 +196,8 @@ _ADAPTOR_CAPABILITIES  = {
                           saga.job.TOTAL_CPU_COUNT, # TODO: 'hot'-fix for BigJob - implement properly
                           saga.job.PROCESSES_PER_HOST,
                           saga.job.SPMD_VARIATION,  # TODO: 'hot'-fix for BigJob - implement properly
+                          saga.job.PRE_EXEC_CMDS,
+                          saga.job.POST_EXEC_CMDS
                          ],
     "job_attributes"   : [saga.job.EXIT_CODE,
                           saga.job.EXECUTION_HOSTS,
@@ -645,6 +647,9 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
         if  jd.attribute_exists (PRE_EXEC) :
             for p in jd.pre_exec :
                 cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
+        elif jd.attribute_exists (PRE_EXEC_CMDS) :
+            for p in jd.pre_exec_cmds :
+                cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
 
         cmd += " && ("
         cmd += " %s" % jd.executable
@@ -666,6 +671,9 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
 
         if  jd.attribute_exists (POST_EXEC) :
             for p in jd.post_exec :
+                cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
+        elif jd.attribute_exists(POST_EXEC_CMDS):
+            for p in jd.post_exec_cmds :
                 cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
 
         return cmd

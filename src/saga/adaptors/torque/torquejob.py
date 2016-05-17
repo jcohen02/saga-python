@@ -27,7 +27,7 @@ SYNC_CALL  = saga.adaptors.cpi.decorators.SYNC_CALL
 ASYNC_CALL = saga.adaptors.cpi.decorators.ASYNC_CALL
 
 SYNC_WAIT_UPDATE_INTERVAL =  1  # seconds
-MONITOR_UPDATE_INTERVAL   = 60  # seconds
+MONITOR_UPDATE_INTERVAL   = 5  # seconds
 
 
 # --------------------------------------------------------------------
@@ -147,6 +147,8 @@ def _torquescript_generator(url, logger, jd, ppn, gres, torque_version, is_cray=
     """
     pbs_params  = str()
     exec_n_args = str()
+    pre_exec_cmds = str()
+    post_exec_cmds = str()
 
     if jd.processes_per_host:
         logger.info("Overriding the detected ppn (%d) with the user specified processes_per_host (%d)" % (ppn, jd.processes_per_host))
@@ -158,6 +160,14 @@ def _torquescript_generator(url, logger, jd, ppn, gres, torque_version, is_cray=
     if jd.arguments:
         for arg in jd.arguments:
             exec_n_args += "%s " % (arg)
+
+    # Prepare pre and post executable commands if they're provided
+    if jd.pre_exec_cmds:
+        for pre_cmd in jd.pre_exec_cmds:
+            pre_exec_cmds += (pre_cmd + '\n')
+    if jd.post_exec_cmds:
+        for post_cmd in jd.post_exec_cmds:
+            post_exec_cmds += (post_cmd + '\n')
 
     if jd.name:
         pbs_params += "#PBS -N %s \n" % jd.name
@@ -296,6 +306,13 @@ def _torquescript_generator(url, logger, jd, ppn, gres, torque_version, is_cray=
         else:
             logger.info("Using Cray XT (e.g. Kraken, Jaguar) specific '#PBS -l size=xx' flags (TORQUE).")
             pbs_params += "#PBS -l size=%s\n" % jd.total_cpu_count
+    # If we're working with a Torque platform that requires a parameter of the
+    # form #PBS -l select=<node type>:ncpus=<num cpus>:mem=<memory required>
+    # then we add this line in here, instead of any of the other configuration 
+    # options.
+    elif jd.node_cpu_mem:
+        # Add the complete line as provided to the node_cpu_mem property.
+        pbs_params += "#PBS -l %s\n" % (jd.node_cpu_mem)
     elif 'version: 2.3.13' in torque_version:
         # e.g. Blacklight
         # TODO: The more we add, the more it screams for a refactoring
@@ -326,7 +343,8 @@ def _torquescript_generator(url, logger, jd, ppn, gres, torque_version, is_cray=
     exec_n_args = workdir_directives + exec_n_args
     exec_n_args = exec_n_args.replace('$', '\\$')
 
-    pbscript = "\n#!/bin/bash \n%s%s" % (pbs_params, exec_n_args)
+    pbscript = ("\n#!/bin/bash \n%s%s\n%s\n%s\n" 
+                % (pbs_params, pre_exec_cmds, exec_n_args, post_exec_cmds))
 
     pbscript = pbscript.replace('"', '\\"')
     return pbscript
@@ -363,7 +381,12 @@ _ADAPTOR_CAPABILITIES = {
                           saga.job.WALL_TIME_LIMIT,
                           saga.job.PROCESSES_PER_HOST,
                           saga.job.SPMD_VARIATION,
-                          saga.job.TOTAL_CPU_COUNT],
+                          saga.job.TOTAL_CPU_COUNT,
+                          # Added to support job configuration line in PBS 
+                          # script such as #PBS -l select=16:ncpus=1:mem=2048mb
+                          saga.job.NODE_CPU_MEM,
+                          saga.job.PRE_EXEC_CMDS,
+                          saga.job.POST_EXEC_CMDS],
     "job_attributes":    [saga.job.EXIT_CODE,
                           saga.job.EXECUTION_HOSTS,
                           saga.job.CREATED,
@@ -685,7 +708,7 @@ class TORQUEJobService (saga.adaptors.cpi.job.Service):
         # (1) we create a temporary file with 'mktemp' and write the contents of 
         #     the generated PBS script into it
         # (2) we call 'qsub <tmpfile>' to submit the script to the queueing system
-        cmdline = """SCRIPTFILE=`mktemp -t SAGA-Python-TORQUEJobScript.XXXXXX` &&  echo "%s" > $SCRIPTFILE && %s $SCRIPTFILE && rm -f $SCRIPTFILE""" %  (script, self._commands['qsub']['path'])
+        cmdline = """SCRIPTFILE=`mktemp -t SAGA-Python-TORQUEJobScript.XXXXXX` &&  echo "%s" > $SCRIPTFILE && %s $SCRIPTFILE""" %  (script, self._commands['qsub']['path'])
         ret, out, _ = self.shell.run_sync(cmdline)
 
         if ret != 0:

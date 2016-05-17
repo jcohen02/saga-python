@@ -29,7 +29,7 @@ SYNC_CALL  = saga.adaptors.cpi.decorators.SYNC_CALL
 ASYNC_CALL = saga.adaptors.cpi.decorators.ASYNC_CALL
 
 SYNC_WAIT_UPDATE_INTERVAL =  1  # seconds
-MONITOR_UPDATE_INTERVAL   = 20  # seconds
+MONITOR_UPDATE_INTERVAL   = 5  # seconds
 
 
 # --------------------------------------------------------------------
