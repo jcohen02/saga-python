@@ -643,7 +643,7 @@ class PBSJobService (saga.adaptors.cpi.job.Service):
 
         # TODO: this is quite a hack. however, it *seems* to work quite
         #       well in practice.
-        if any(ver in self._commands['qstat']['version'] for ver in ('PBSPro_12', 'PBSPro_11.3')):
+        if any(ver in self._commands['qstat']['version'] for ver in ('PBSPro_13', 'PBSPro_12', 'PBSPro_11.3')):
             ret, out, _ = self.shell.run_sync('unset GREP_OPTIONS; %s -a | grep -E "resources_available.ncpus"' % \
                                                self._commands['pbsnodes']['path'])
         else:

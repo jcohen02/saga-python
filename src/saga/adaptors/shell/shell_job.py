@@ -174,7 +174,17 @@ _ADAPTOR_OPTIONS       = [
                           suitable jobs, including the ones managed by another,
                           live job service instance.''',
     'env_variable'     : None
-}
+    },
+    {
+    'category'         : 'saga.adaptor.shell_job',
+    'name'             : 'base_workdir',
+    'type'             : str,
+    'default'          : "$HOME/.saga/adaptors/shell_job/",
+    'documentation'    : '''The adaptor stores job state information on the
+                          filesystem on the target resource.  This parameter
+                          specified what location should be used.''',
+    'env_variable'     : None
+    }
 ]
 
 # --------------------------------------------------------------------
@@ -192,6 +202,7 @@ _ADAPTOR_CAPABILITIES  = {
                           saga.job.INPUT,
                           saga.job.OUTPUT,
                           saga.job.ERROR,
+                          saga.job.NAME,
                           saga.job.WALL_TIME_LIMIT, # TODO: 'hot'-fix for BigJob - implement properly
                           saga.job.TOTAL_CPU_COUNT, # TODO: 'hot'-fix for BigJob - implement properly
                           saga.job.PROCESSES_PER_HOST,
@@ -362,6 +373,7 @@ class Adaptor (saga.adaptors.base.Base):
 
         self.notifications  = self.opts['enable_notifications'].get_value ()
         self.purge_on_start = self.opts['purge_on_start'      ].get_value ()
+        self.base_workdir   = self.opts['base_workdir'        ].get_value ()
 
 
     # ----------------------------------------------------------------
@@ -409,6 +421,9 @@ class Adaptor (saga.adaptors.base.Base):
     #
     def stage_input (self, shell, jd) :
 
+        if not jd:
+            return
+
         if  jd.file_transfer is not None:
             td = TransferDirectives (jd.file_transfer)
 
@@ -425,6 +440,9 @@ class Adaptor (saga.adaptors.base.Base):
     # ----------------------------------------------------------------
     #
     def stage_output (self, shell, jd) :
+
+        if not jd:
+            return
 
         if  jd.file_transfer is not None:
             td = TransferDirectives (jd.file_transfer)
@@ -459,21 +477,7 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
     def __del__ (self) :
 
         try :
-            # FIXME: not sure if we should PURGE here -- that removes states which
-            # might not be evaluated, yet.  Should we mark state evaluation
-            # separately? 
-            #   cmd_state () { touch $DIR/purgeable; ... }
-            # When should that be done?
-
-            self._logger.info ("adaptor %s : %s jobs" % (self, self.njobs))
-
-            if  self.shell : 
-             #  self.shell.run_sync  ("PURGE", iomode=None)
-                self.shell.run_async ("QUIT")
-                self.finalize (kill_shell=True)
-
-            if  self.monitor : 
-                self.finalize (kill_shell=True)
+            self.close()
 
         except Exception as e :
           # print str(e)
@@ -525,12 +529,21 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
     #
     def close (self) :
 
-        if  self.monitor :
-            self.monitor.finalize ()
-            # we don't care about join, really
+        if  self.shell : 
+            # FIXME: not sure if we should PURGE here -- that removes states which
+            # might not be evaluated, yet.  Should we mark state evaluation
+            # separately? 
+            #   cmd_state () { touch $DIR/purgeable; ... }
+            # When should that be done?
 
-        if  self.shell :
-            self.shell.finalize (True)
+         #  self.shell.run_sync ("PURGE", iomode=None)
+            self.shell.run_async("QUIT")
+            self.shell.finalize(kill_pty=True)
+            self.shell = None
+
+        if  self.monitor : 
+            self.monitor.finalize()
+            # we don't care about join, really
 
 
     # ----------------------------------------------------------------
@@ -544,7 +557,7 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
         # and running, we can requests job start / management operations via its
         # stdio.
 
-        base = "~/.saga/adaptors/shell_job"
+        base = self._adaptor.base_workdir
 
         ret, out, _ = self.shell.run_sync (" mkdir -p %s" % base)
         if  ret != 0 :
@@ -552,7 +565,7 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
 
         # TODO: replace some constants in the script with values from config
         # files, such as 'timeout' or 'purge_on_quit' ...
-        tgt = ".saga/adaptors/shell_job/wrapper.sh"
+        tgt = "%s/wrapper.sh" % base
 
         # lets check if we actually need to stage the wrapper script.  We need
         # an adaptor lock on this one.
@@ -561,7 +574,9 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
             ret, out, _ = self.shell.run_sync (" test -f %s" % tgt)
             if  ret != 0 :
                 # yep, need to stage...
-                src = shell_wrapper._WRAPPER_SCRIPT % ({ 'PURGE_ON_START' : str(self._adaptor.purge_on_start) })
+              # src = shell_wrapper._WRAPPER_SCRIPT % ({ 'PURGE_ON_START' : str(self._adaptor.purge_on_start) })
+                src = shell_wrapper._WRAPPER_SCRIPT
+                src = src.replace('%(PURGE_ON_START)s', str(self._adaptor.purge_on_start))
                 self.shell.write_to_remote (src, tgt)
 
         # ----------------------------------------------------------------------
@@ -578,7 +593,8 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
         # Well, actually, we do not use exec, as that does not give us good
         # feedback on failures (the shell just quits) -- so we replace it with
         # this poor-man's version...
-        ret, out, _ = self.shell.run_sync (" /bin/sh %s/wrapper.sh" % base)
+        ret, out, _ = self.shell.run_sync (" /bin/sh %s/wrapper.sh %s" % (base,
+            base))
 
         # shell_wrapper.sh will report its own PID -- we use that to sync prompt
         # detection, too.
@@ -600,7 +616,7 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
 
         # ----------------------------------------------------------------------
         # now do the same for the monitoring shell
-        ret, out, _ = self.channel.run_sync (" /bin/sh %s/wrapper.sh" % base)
+        ret, out, _ = self.channel.run_sync (" /bin/sh %s/wrapper.sh %s" % (base, base))
 
         # shell_wrapper.sh will report its own PID -- we use that to sync prompt
         # detection, too.
@@ -620,16 +636,6 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
         self._logger.debug ("got mon prompt (%s)(%s)" % (ret, out.strip ()))
 
 
-    # ----------------------------------------------------------------
-    #
-    def finalize (self, kill_shell = False) :
-
-        if  kill_shell :
-            if  self.shell :
-                self.shell.finalize (kill_pty=True)
-
-
-    
     # ----------------------------------------------------------------
     #
     #
@@ -780,7 +786,7 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
                 continue
 
             if ':' in line :
-                key, val = line.split (":", 2)
+                key, val = line.split (":", 1)
                 ret[key.strip ().lower ()] = val.strip ()
                 continue
 
@@ -1024,6 +1030,9 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
         messages, assigning job IDs etc.
         """
 
+        # FIXME: this just assumes that all tasks are job creation tasks --
+        #        which is not necessarily true...
+
         self._logger.debug ("container run: %s"  %  str(jobs))
 
         bulk = "BULK\n"
@@ -1101,13 +1110,28 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
     @SYNC_CALL
     def container_wait (self, jobs, mode, timeout) :
 
+        # FIXME: this just assumes that all tasks are job wait tasks --
+        #        which is not necessarily true...
+        # FIXME: we ignore the job wait mode (ALL/ANY), and always wait for all
+        #        jobs...
+
         self._logger.debug ("container wait: %s"  %  str(jobs))
 
         bulk = "BULK\n"
 
         for job in jobs :
-            rm, pid = self._adaptor.parse_id (job.id)
-            bulk   += "WAIT %s\n" % pid
+          # print type (job)
+          # print type (job._adaptor)
+
+            if  not isinstance (job._adaptor, ShellJob) :
+                # this is not a job created by this adaptor.  Its probably
+                # a task for a job operation where the job is owned by this
+                # adaptor (FIXME: check).  Fall back to non-container wait.
+                # FIXME: timeout handling is wrong
+                job.wait (timeout)
+            else :
+                rm, pid = self._adaptor.parse_id (job.id)
+                bulk   += "WAIT %s\n" % pid
 
         bulk += "BULK_RUN\n"
         self.shell.run_async (bulk)
@@ -1154,9 +1178,9 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
     # ----------------------------------------------------------------
     #
     @SYNC_CALL
-    def container_cancel (self, jobs) :
+    def container_cancel (self, jobs, timeout) :
 
-        self._logger.debug ("container cancel: %s"  %  str(jobs))
+        self._logger.debug ("container cancel: %s [%s]"  %  (str(jobs), timeout))
 
         bulk = "BULK\n"
 
@@ -1217,6 +1241,10 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
         states = []
 
         for job in jobs :
+
+          # print job
+          # job._attributes_dump ()
+
             rm, pid = self._adaptor.parse_id (job.id)
             bulk   += "STATE %s\n" % pid
 
@@ -1307,6 +1335,7 @@ class ShellJob (saga.adaptors.cpi.job.Job) :
             self._exit_code       = None
             self._exception       = None
             self._created         = time.time ()
+            self._name            = self.jd.name
             self._started         = None
             self._finished        = None
 
@@ -1315,13 +1344,15 @@ class ShellJob (saga.adaptors.cpi.job.Job) :
         elif 'job_id' in job_info :
             # initialize job attribute values
             self.js               = job_info["job_service"] 
+            self.jd               = None
             self._id              = job_info['job_id']
-            self._name            = job_info['job_name']
+            self._name            = job_info.get('job_name')
             self._log             = list()
             self._state           = None
             self._exit_code       = None
             self._exception       = None
             self._created         = None
+            self._name            = None
             self._started         = None
             self._finished        = None
 
@@ -1374,7 +1405,7 @@ class ShellJob (saga.adaptors.cpi.job.Job) :
             self._state == saga.job.CANCELED     :
                 return self._state
 
-        stats     = self.js._job_get_stats (self._id)
+        stats = self.js._job_get_stats (self._id)
 
         if 'start' in stats : self._started  = stats['start']
         if 'stop'  in stats : self._finished = stats['stop']
@@ -1412,6 +1443,15 @@ class ShellJob (saga.adaptors.cpi.job.Job) :
 
         # no need to refresh stats -- this is set locally
         return self._created
+
+
+    # ----------------------------------------------------------------
+    #
+    @SYNC_CALL
+    def get_name (self) : 
+
+        # no need to refresh stats -- this is set locally
+        return self._name
 
 
     # ----------------------------------------------------------------
@@ -1564,7 +1604,7 @@ class ShellJob (saga.adaptors.cpi.job.Job) :
 
             # avoid busy poll
             # FIXME: self-tune by checking call latency
-            time.sleep (0.5)
+            time.sleep (0.1)
 
             # check if we hit timeout
             if  timeout >= 0 :

@@ -427,12 +427,12 @@ class Job (sb.Base, st.Task, sasync.Async) :
 
     #-----------------------------------------------------------------
     #
-    id          = property (get_id)           # string
-    description = property (get_description)  # Description
-    stdin       = property (get_stdin)        # string
-    stdout      = property (get_stdout)       # string
-    stderr      = property (get_stderr)       # string
-    log         = property (get_log)          # string
+    id          = property (get_id)            # string
+    description = property (get_description)   # Description
+   #stdin       = property (get_stdin)         # File
+    stdout      = property (get_stdout_string) # string
+    stderr      = property (get_stderr_string) # string
+    log         = property (get_log)           # string
 
 
     #-----------------------------------------------------------------
@@ -640,6 +640,18 @@ class Job (sb.Base, st.Task, sasync.Async) :
     #
     @rus.takes     ('Job',
                     rus.optional (rus.one_of (SYNC, ASYNC, TASK)))
+    @rus.returns   ((basestring, st.Task))
+    def get_name   (self, ttype=None) :
+        """
+        get_name()
+        """
+        return self._adaptor.get_name (ttype=ttype)
+
+
+    # --------------------------------------------------------------------------
+    #
+    @rus.takes     ('Job',
+                    rus.optional (rus.one_of (SYNC, ASYNC, TASK)))
     @rus.returns   ((sb.Base, st.Task))
     def get_object (self, ttype=None) :
         """ :todo: describe me
@@ -739,6 +751,7 @@ class Job (sb.Base, st.Task, sasync.Async) :
     def _get_service_url (self, ttype=None) :
         return self._adaptor.get_service_url (ttype=ttype)
 
+    name      = property (get_name)        # job name
     state     = property (get_state)       # state enum
     result    = property (get_result)      # result type    (None)
     object    = property (get_object)      # object type    (job_service)
