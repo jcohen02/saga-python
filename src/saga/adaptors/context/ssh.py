@@ -28,7 +28,8 @@ _ADAPTOR_CAPABILITIES  = {
                            saga.context.USER_ID   : "user name on target machine",
                            saga.context.USER_KEY  : "maps to public ssh key",
                            saga.context.USER_CERT : "maps to private ssh key",
-                           saga.context.USER_PASS : "passphrase for encrypted keys"}
+                           saga.context.USER_PASS : "passphrase for encrypted keys",
+                           saga.context.AUTH_SOCK : "value for the SSH_AUTH_SOCK env var"}
 }
 
 _ADAPTOR_DOC           = {
