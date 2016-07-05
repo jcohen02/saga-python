@@ -599,6 +599,12 @@ class PTYShellFactory (object) :
 
                                     if  context.attribute_exists ("user_pass") and context.user_pass :
                                         info['key_pass'][context.user_key] = context.user_pass
+                                
+                                if context.attribute_exists ("auth_sock") and context.auth_sock:
+                                    info['ssh_env']   += "SSH_AUTH_SOCK='%s' "  % context.auth_sock
+                                    info['scp_env']   += "SSH_AUTH_SOCK='%s' "  % context.auth_sock
+                                    info['sftp_env']  += "SSH_AUTH_SOCK='%s' "  % context.auth_sock
+                                    
 
                         if  context.type.lower () == "userpass" :
                             if  info['schema'] in _SCHEMAS_SSH + _SCHEMAS_GSI :

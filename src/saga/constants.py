@@ -58,6 +58,7 @@ LIFE_TIME       = "LifeTime"
 REMOTE_ID       = "RemoteID"
 REMOTE_HOST     = "RemoteHost"
 REMOTE_PORT     = "RemotePort"
+AUTH_SOCK       = "AuthSock"
 
 
 

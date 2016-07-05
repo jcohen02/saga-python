@@ -13,7 +13,7 @@ import saga.base             as sb
 from   saga.constants import TYPE,       SERVER,    USER_CERT,   CERT_REPOSITORY
 from   saga.constants import USER_PROXY, USER_KEY,  USER_ID,     USER_PASS,   USER_VO
 from   saga.constants import LIFE_TIME,  REMOTE_ID, REMOTE_HOST, REMOTE_PORT, TOKEN
-
+from   saga.constants import AUTH_SOCK
 # ------------------------------------------------------------------------------
 #
 class Context (sb.Base, sa.Attributes) :
@@ -99,6 +99,7 @@ class Context (sb.Base, sa.Attributes) :
         self._attributes_register  (REMOTE_ID,       None, sa.STRING, sa.SCALAR, sa.WRITEABLE)
         self._attributes_register  (REMOTE_HOST,     None, sa.STRING, sa.SCALAR, sa.WRITEABLE)
         self._attributes_register  (REMOTE_PORT,     None, sa.STRING, sa.VECTOR, sa.WRITEABLE)
+        self._attributes_register  (AUTH_SOCK,       None, sa.STRING, sa.SCALAR, sa.WRITEABLE)
 
         self.type = ctype
 
