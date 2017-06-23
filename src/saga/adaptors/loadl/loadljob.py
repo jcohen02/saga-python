@@ -131,6 +131,7 @@ _ADAPTOR_CAPABILITIES = {
                           saga.job.WORKING_DIRECTORY,
                           saga.job.TOTAL_PHYSICAL_MEMORY,
                           saga.job.PROCESSES_PER_HOST,
+                          saga.job.CANDIDATE_HOSTS,
                           saga.job.TOTAL_CPU_COUNT],
     "job_attributes":    [saga.job.EXIT_CODE,
                           saga.job.EXECUTION_HOSTS,
@@ -1021,7 +1022,7 @@ class LOADLJobService (saga.adaptors.cpi.job.Service):
   #
   # # ----------------------------------------------------------------
   # #
-  # def container_cancel (self, jobs) :
+  # def container_cancel (self, jobs, timeout) :
   #     self._logger.debug ("container cancel: %s"  %  str(jobs))
   #     raise saga.NoSuccess ("Not Implemented");
 

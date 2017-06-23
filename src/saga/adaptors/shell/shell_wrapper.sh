@@ -709,8 +709,6 @@ cmd_cancel () {
   mpid=`\cat "$DIR/mpid"`
 
   # first kill monitor, so that it does not interfer with state management
-  echo "/bin/kill -TERM $mpid " >> /tmp/t
-  echo "/bin/kill -KILL $mpid " >> /tmp/t
   /bin/kill -TERM $mpid 2>/dev/null
   /bin/kill -KILL $mpid 2>/dev/null
 
@@ -723,8 +721,6 @@ cmd_cancel () {
   fi
 
   # now kill the job process group, and to be sure also the job shell
-  echo "/bin/kill -TERM $KILL_DASHES -$rpid " >> /tmp/t
-  echo "/bin/kill -KILL $KILL_DASHES -$rpid " >> /tmp/t
   /bin/kill -TERM $KILL_DASHES -$rpid 2>/dev/null
   /bin/kill -KILL $KILL_DASHES -$rpid 2>/dev/null
 
@@ -798,12 +794,14 @@ cmd_list () {
 # purge working directories of given jobs
 # default (no job id given): purge all final jobs older than 1 day
 #
+# NOTE: we need to be able to handle unremovable nsf lockfiles (`|| true`)
+#
 cmd_purge () {
 
   if ! test -z "$1"
   then
     DIR="$BASE/$1"
-    \rm -rf "$DIR"
+    \rm -rf "$DIR" || true
     RETVAL="purged $1"
   else
     for d in `\grep -l -e 'DONE' -e 'FAILED' -e 'CANCELED' "$BASE"/*/state 2>/dev/null`
@@ -823,13 +821,15 @@ cmd_purge () {
 #
 # purge tmp files for bulks etc.
 #
+# NOTE: we need to be able to handle unremovable nsf lockfiles (`|| true`)
+#
 cmd_purge_tmps () {
 
   \rm -f "$BASE"/bulk.*
   \rm -f "$BASE"/idle.*
   \rm -f "$BASE"/quit.*
-  \find  "$BASE" -type d -mtime +30 -print | xargs -n 100 \rm -rf
-  \find  "$BASE" -type f -mtime +30 -print | xargs -n 100 \rm -f
+  \find  "$BASE" -type d -mtime +30 -print | xargs -n 100 \rm -rf || true
+  \find  "$BASE" -type f -mtime +30 -print | xargs -n 100 \rm -f  || true
   RETVAL="purged tmp files"
 }
 
@@ -933,8 +933,6 @@ listen() {
     IFS=$OLDIFS
     while \read -r CMD ARGS
     do
-      echo "$CMD $1" >> /tmp/t
-
       # reset error state for each command
       ERROR="OK"
       RETVAL=""

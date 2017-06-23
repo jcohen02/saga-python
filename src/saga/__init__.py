@@ -15,7 +15,7 @@ from   saga.constants      import *
 
 from   saga.task           import Task, Container
 from   saga.attributes     import Attributes, Callback
-from   saga.session        import Session
+from   saga.session        import Session, DefaultSession
 from   saga.context        import Context
 from   saga.url            import Url
 
@@ -43,7 +43,9 @@ import saga.resource
 
 pwd     = os.path.dirname (__file__)
 root    = "%s/.." % pwd
-version, version_detail, version_branch, sdist_name, sdist_path = ru.get_version ([root, pwd])
+version_short, version_detail, version_base, version_branch, \
+        sdist_name, sdist_path = ru.get_version ([root, pwd])
+version = version_short
 
 # FIXME: the logger init will require a 'classical' ini based config, which is
 # different from the json based config we use now.   May need updating once the
