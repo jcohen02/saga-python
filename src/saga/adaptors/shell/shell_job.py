@@ -662,10 +662,10 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
 
         if  jd.attribute_exists (PRE_EXEC) :
             for p in jd.pre_exec :
-                cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
+                cmd += " && %s"  %  p
         elif jd.attribute_exists (PRE_EXEC_CMDS) :
             for p in jd.pre_exec_cmds :
-                cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
+                cmd += " && %s"  %  p
 
         cmd += " && ("
         cmd += " %s" % jd.executable
@@ -687,10 +687,10 @@ class ShellJobService (saga.adaptors.cpi.job.Service) :
 
         if  jd.attribute_exists (POST_EXEC) :
             for p in jd.post_exec :
-                cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
+                cmd += " && %s"  %  p
         elif jd.attribute_exists(POST_EXEC_CMDS):
             for p in jd.post_exec_cmds :
-                cmd += " && %s 2>&1 >> $SAGA_PWD/log"  %  p
+                cmd += " && %s"  %  p
 
         return cmd
 
